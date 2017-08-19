@@ -268,20 +268,22 @@ int main() {
                         }
                     }
 
-                    bool safe_to_change_left = true;
-                    if (lane <= 0)//no way to switch to left lane if already on the leftmost lane
-                    {
-                        safe_to_change_left = false;
-                    }
-
-                    bool safe_to_change_right = true;
-                    if (lane >= 2)//no way to switch to right lane if already on the rightmost lane
-                    {
-                        safe_to_change_right = false;
-                    }
-
                     if (too_close == true)
                     {
+                        //check if it is safe to switch lane
+
+                        bool safe_to_change_left = true;
+                        if (lane <= 0)//cannot switch to left lane if already on the leftmost lane
+                        {
+                            safe_to_change_left = false;
+                        }
+
+                        bool safe_to_change_right = true;
+                        if (lane >= 2)//cannot switch to right lane if already on the rightmost lane
+                        {
+                            safe_to_change_right = false;
+                        }
+
                         //check all the surrounding cars
                         for (int i =0; i<sensor_fusion.size(); i++)
                         {
@@ -304,7 +306,6 @@ int main() {
                             }
 
                             //check if right lane is clear
-                            //if((d>0) && (d>2+4*lane+2) && (abs(check_car_s-end_path_s)<30))
                             if((d>0) && (d>2+4*lane+2) && (abs(check_car_s-end_path_s)<30))
                             {
                                 safe_to_change_right = false;
@@ -325,13 +326,15 @@ int main() {
                         }
                         else
                         {
-                            target_speed -= acc;
+                            target_speed -= acc; //slow down if not safe to switch lane
                         }
                     }
                     else if (target_speed < 49.5)
                     {
-                        target_speed += acc;
+                        target_speed += acc; //speed up to speed limit if there's no car in front that is too close
                     }
+
+                    //use spline to generate trajectory
 
                     vector<double> ptsx;
                     vector<double> ptsy;
@@ -429,7 +432,7 @@ int main() {
                         double x_ref = x_point;
                         double y_ref = y_point;
 
-                        //rotating back to normal
+                        //rotating back to normal coordinates
                         x_point = x_ref*cos(ref_yaw)-y_ref*sin(ref_yaw);
                         y_point = x_ref*sin(ref_yaw)+y_ref*cos(ref_yaw);
 
