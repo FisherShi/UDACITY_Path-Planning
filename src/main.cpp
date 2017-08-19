@@ -200,7 +200,7 @@ int main() {
     //set the car to start in lane 1
     int lane =1;
     //target velocity
-    double target_speed = 0; //start with o mph
+    double target_speed = 0; //initial target speed
     double acc = 0.8; //acceleration
 
     h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&target_speed,&lane,&acc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -252,14 +252,15 @@ int main() {
                         //check the if there is a car in in the same lane
                         if ((d<2+4*lane+2) && (d>2+4*lane-2))
                         {
-                            //check the speed of the car in our lane
+                            //calculate the speed of the car in our lane
                             double vx = sensor_fusion[i][3];
                             double vy = sensor_fusion[i][4];
                             double check_speed = sqrt(vx*vx+vy*vy);
+                            //check the s value of the car in the same lane
                             double check_car_s = sensor_fusion[i][5];
-                            //where the other car will be in the future.
+                            //calculate where this car will be in the future assuming constant speed.
                             check_car_s += double(prev_size)*0.02*check_speed;
-                            //check if the other car will be too close to us
+                            //check if this car is in front and too close to us
                             if ((check_car_s > car_s)&&((check_car_s-end_path_s)<30))
                             {
                                 too_close = true; //the car in front is too close!
@@ -268,16 +269,17 @@ int main() {
                     }
 
                     bool safe_to_change_left = true;
-                    if (lane <= 0)
+                    if (lane <= 0)//no way to switch to left lane if already on the leftmost lane
                     {
                         safe_to_change_left = false;
                     }
+
                     bool safe_to_change_right = true;
-                    if (lane >= 2)
+                    if (lane >= 2)//no way to switch to right lane if already on the rightmost lane
                     {
                         safe_to_change_right = false;
                     }
-                    //if (too_close == true)
+
                     if (too_close == true)
                     {
                         //check all the surrounding cars
@@ -369,11 +371,7 @@ int main() {
                         ptsy.push_back(ref_y);
                     }
 
-                    //in Frenet add evenly 30m spaced points ahead of the starting reference
-                    //vector<double> next_wp0 = getXY(car_s+30,(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
-                    //vector<double> next_wp1 = getXY(car_s+60,(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
-                    //vector<double> next_wp2 = getXY(car_s+90,(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
-
+                    //in Frenet add evenly 60m spaced points ahead of the starting reference
                     vector<double> next_wp0 = getXY(car_s+60,(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
                     vector<double> next_wp1 = getXY(car_s+120,(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
                     vector<double> next_wp2 = getXY(car_s+180,(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
@@ -385,14 +383,11 @@ int main() {
                     ptsy.push_back(next_wp0[1]);
                     ptsy.push_back(next_wp1[1]);
                     ptsy.push_back(next_wp2[1]);
-
-                    /*
-                     *now we have 5 points: 2 previous points, 30m, 60m, and 90m points
-                     */
+                    //now we have 5 points: 2 previous points, 60m, 120m, and 180m point
 
                     for(int i=0; i<ptsx.size();i++)
                     {
-                        //shift car reference angle to 0 degree
+                        //shift car reference angle to 0 degree to make the math easy
                         double shift_x = ptsx[i]-ref_x;
                         double shift_y = ptsy[i]-ref_y;
 
@@ -406,8 +401,6 @@ int main() {
 
                     vector<double> next_x_vals;
                     vector<double> next_y_vals;
-
-                    // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 
                     //add remaining previous path points
                     for(int i=0; i<previous_path_x.size();i++)
